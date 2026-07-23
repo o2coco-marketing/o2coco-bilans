@@ -26,16 +26,23 @@ def render() -> None:
             st.rerun()
         return
 
-    error_filenames = [
-        extra.get(row_id, {}).get("source_filename", row_id)
+    error_entries = [
+        (
+            extra.get(row_id, {}).get("source_filename", row_id),
+            extra.get(row_id, {}).get("extraction_error_message"),
+        )
         for row_id in df["id"]
         if extra.get(row_id, {}).get("extraction_status") == "error"
     ]
-    if error_filenames:
+    if error_entries:
+        filenames = [name for name, _ in error_entries]
         st.warning(
             "⚠️ Ces fichiers n'ont pas pu être analysés automatiquement et doivent être "
-            "complétés manuellement dans le tableau ci-dessous : " + ", ".join(error_filenames)
+            "complétés manuellement dans le tableau ci-dessous : " + ", ".join(filenames)
         )
+        distinct_messages = sorted({msg for _, msg in error_entries if msg})
+        for msg in distinct_messages:
+            st.error(f"Raison indiquée par le système : {msg}")
 
     st.subheader("Tableau récapitulatif")
     edited_df = st.data_editor(
