@@ -1,0 +1,155 @@
+"""Écran de révision/correction manuelle, puis génération du bilan Excel final."""
+import streamlit as st
+
+import business_rules
+from config import DEPARTEMENTS, DESIGNATIONS
+from excel_export import build_filename, build_workbook
+from state import COLUMN_LABELS, CORE_COLUMNS, dataframe_to_rows
+
+
+def render() -> None:
+    month_label = st.session_state.get("bilan_month_label", "")
+    st.title(f"Révision — Bilan de {month_label}")
+    st.write(
+        "Vérifiez et corrigez les informations extraites automatiquement avant de générer le "
+        "bilan. Rien n'est enregistré tant que vous n'avez pas cliqué sur "
+        "« Générer le bilan mensuel »."
+    )
+
+    df = st.session_state["invoices_df"]
+    extra = st.session_state["invoice_extra"]
+
+    if df.empty:
+        st.warning("Aucune facture à afficher.")
+        if st.button("← Retour à l'accueil"):
+            st.session_state["step"] = "home"
+            st.rerun()
+        return
+
+    error_filenames = [
+        extra.get(row_id, {}).get("source_filename", row_id)
+        for row_id in df["id"]
+        if extra.get(row_id, {}).get("extraction_status") == "error"
+    ]
+    if error_filenames:
+        st.warning(
+            "⚠️ Ces fichiers n'ont pas pu être analysés automatiquement et doivent être "
+            "complétés manuellement dans le tableau ci-dessous : " + ", ".join(error_filenames)
+        )
+
+    st.subheader("Tableau récapitulatif")
+    edited_df = st.data_editor(
+        df,
+        column_order=[c for c in CORE_COLUMNS if c != "id"],
+        column_config={
+            "numero_facture": st.column_config.TextColumn(COLUMN_LABELS["numero_facture"]),
+            "numero_client_fournisseur": st.column_config.TextColumn(
+                COLUMN_LABELS["numero_client_fournisseur"]
+            ),
+            "date_facture": st.column_config.DateColumn(
+                COLUMN_LABELS["date_facture"], format="DD/MM/YYYY", required=True
+            ),
+            "date_echeance": st.column_config.DateColumn(
+                COLUMN_LABELS["date_echeance"], format="DD/MM/YYYY", required=True
+            ),
+            "designation": st.column_config.SelectboxColumn(
+                COLUMN_LABELS["designation"], options=DESIGNATIONS, required=True
+            ),
+            "montant_ht": st.column_config.NumberColumn(
+                COLUMN_LABELS["montant_ht"], format="%d", step=1, required=True
+            ),
+            "taux_tva": st.column_config.NumberColumn(
+                COLUMN_LABELS["taux_tva"], format="%d", step=1
+            ),
+            "montant_tva": st.column_config.NumberColumn(
+                COLUMN_LABELS["montant_tva"], format="%d", step=1
+            ),
+            "departement": st.column_config.SelectboxColumn(
+                COLUMN_LABELS["departement"], options=DEPARTEMENTS, required=True
+            ),
+        },
+        num_rows="fixed",
+        hide_index=True,
+        use_container_width=True,
+        key="invoices_editor",
+    )
+    st.session_state["invoices_df"] = edited_df
+
+    st.subheader("Compléments requis")
+    needing_amortissement = edited_df[
+        edited_df["designation"].apply(business_rules.requires_amortissement)
+    ]
+    if needing_amortissement.empty:
+        st.caption("Aucune facture ne nécessite de note d'amortissement pour l'instant.")
+    else:
+        st.caption(
+            "Ces factures ont une désignation qui n'est ni « alimentaire » ni « service » : "
+            "merci d'indiquer manuellement l'amortissement à appliquer."
+        )
+        for _, table_row in needing_amortissement.iterrows():
+            row_id = table_row["id"]
+            row_extra = extra.setdefault(row_id, {})
+            filename = row_extra.get("source_filename", "")
+            invoice_number = table_row["numero_facture"] or "sans numéro"
+            label = f"Amortissement — {filename} (facture {invoice_number}, {table_row['designation']})"
+
+            edit_col, preview_col = st.columns([4, 1])
+            with edit_col:
+                new_note = st.text_input(
+                    label, value=row_extra.get("amortissement_note") or "", key=f"amort_{row_id}"
+                )
+                row_extra["amortissement_note"] = new_note
+            with preview_col:
+                st.write("")
+                with st.popover("🔍 Voir la facture"):
+                    preview_bytes = row_extra.get("preview_bytes")
+                    preview_media_type = row_extra.get("preview_media_type")
+                    if preview_media_type == "image/jpeg" and preview_bytes:
+                        st.image(preview_bytes)
+                    else:
+                        st.caption("Aperçu non disponible pour ce fichier (PDF).")
+
+    st.session_state["invoice_extra"] = extra
+
+    st.divider()
+    rows = dataframe_to_rows(edited_df, extra)
+    incomplete = [
+        row
+        for row in rows
+        if not business_rules.is_row_complete(row.designation, row.departement, row.amortissement_note)
+    ]
+    if incomplete:
+        missing_labels = [row.source_filename or (row.numero_facture or "facture sans nom") for row in incomplete]
+        st.error(
+            f"⚠️ {len(incomplete)} facture(s) incomplète(s) : le service du restaurant (et "
+            "l'amortissement si nécessaire) doivent être renseignés — " + ", ".join(missing_labels)
+        )
+
+    total_ht = sum(row.montant_ht for row in rows)
+    total_tva = sum(row.montant_tva for row in rows)
+    col1, col2 = st.columns(2)
+    col1.metric("Total Montant HT", f"{total_ht:,.0f} XPF".replace(",", " "))
+    col2.metric("Total TVA", f"{total_tva:,.0f} XPF".replace(",", " "))
+
+    st.divider()
+    col_back, col_generate = st.columns(2)
+    with col_back:
+        if st.button("← Retour à l'accueil"):
+            st.session_state["step"] = "home"
+            st.rerun()
+    with col_generate:
+        if st.button("Générer le bilan mensuel", type="primary"):
+            month_key = st.session_state.get("bilan_month_key", "bilan")
+            workbook = build_workbook(rows, month_label)
+            st.session_state["generated_workbook"] = workbook.getvalue()
+            st.session_state["generated_filename"] = build_filename(month_key)
+
+    if st.session_state.get("generated_workbook"):
+        st.success("Le bilan a été généré avec succès.")
+        st.download_button(
+            "📥 Télécharger le fichier Excel",
+            data=st.session_state["generated_workbook"],
+            file_name=st.session_state["generated_filename"],
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            type="primary",
+        )
