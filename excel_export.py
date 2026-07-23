@@ -62,9 +62,8 @@ def build_workbook(rows: list[InvoiceRow], month_label: str) -> io.BytesIO:
         cell = ws.cell(row=total_row, column=col_idx)
         cell.border = BORDER
         cell.font = Font(bold=True)
-        if col.get("totals") and rows:
-            col_letter = get_column_letter(col_idx)
-            cell.value = f"=SUM({col_letter}{DATA_START_ROW}:{col_letter}{total_row - 1})"
+        if col.get("totals"):
+            cell.value = sum(getattr(row, col["field"]) for row in rows)
             cell.number_format = "#,##0"
 
     for col_idx, col in enumerate(COLUMNS, start=1):
