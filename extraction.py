@@ -13,7 +13,6 @@ from state import InvoiceRow
 
 # Mapping des clés de schéma (côté IA) vers les noms de champs internes de l'application.
 RAW_TO_INTERNAL_FIELD = {
-    "code_facture": "code_facture",
     "nom_fournisseur": "nom_fournisseur",
     "numero_facture": "numero_facture",
     "numero_client_fournisseur": "numero_client_fournisseur",
@@ -25,15 +24,6 @@ RAW_TO_INTERNAL_FIELD = {
     "taux_tva_pourcent": "taux_tva",
     "montant_tva": "montant_tva",
 }
-
-
-def _clean_code_facture(raw_value: str | None) -> str | None:
-    """N'accepte que des nombres entiers entre 1 et 500 ; tout le reste devient vide."""
-    value = (raw_value or "").strip().strip('"').strip()
-    if not value.isdigit():
-        return None
-    number = int(value)
-    return str(number) if 1 <= number <= 500 else None
 
 
 def _parse_date(value: str | None) -> date | None:
@@ -69,7 +59,6 @@ def _row_from_raw(filename: str, raw: dict, preview_bytes: bytes, preview_media_
 
     return InvoiceRow(
         source_filename=filename,
-        code_facture=_clean_code_facture(raw.get("code_facture")),
         nom_fournisseur=(raw.get("nom_fournisseur") or "").strip() or None,
         numero_facture=(raw.get("numero_facture") or "").strip() or None,
         numero_client_fournisseur=(raw.get("numero_client_fournisseur") or "").strip() or None,
