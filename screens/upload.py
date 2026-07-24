@@ -5,8 +5,8 @@ import streamlit as st
 
 import business_rules
 
-MIN_RECOMMENDED = 5
-MAX_ALLOWED = 300
+MIN_RECOMMENDED = 1
+MAX_ALLOWED = 500
 
 
 def render() -> None:
@@ -38,13 +38,7 @@ def render() -> None:
     can_start = False
     if files:
         st.info(f"{len(files)} fichier(s) sélectionné(s).")
-        if len(files) < MIN_RECOMMENDED:
-            st.warning(
-                f"Vous pouvez continuer avec moins de {MIN_RECOMMENDED} factures, mais "
-                "l'application est surtout conçue pour traiter des lots complets."
-            )
-            can_start = True
-        elif len(files) > MAX_ALLOWED:
+        if len(files) > MAX_ALLOWED:
             st.error(
                 f"Merci de ne pas dépasser {MAX_ALLOWED} factures en une seule fois. "
                 "Séparez votre import en plusieurs lots."
