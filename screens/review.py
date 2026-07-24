@@ -58,9 +58,17 @@ def render() -> None:
             "code_facture": st.column_config.TextColumn(
                 COLUMN_LABELS["code_facture"], help="Numéro entouré à la main par le personnel, pour retrouver la facture facilement."
             ),
+            "nom_fournisseur": st.column_config.TextColumn(
+                COLUMN_LABELS["nom_fournisseur"],
+                help="Nom de l'entreprise (ex: AUCHAN). Obligatoire — à compléter à la main si l'IA ne l'a pas trouvé.",
+                required=True,
+            ),
             "numero_facture": st.column_config.TextColumn(COLUMN_LABELS["numero_facture"]),
             "numero_client_fournisseur": st.column_config.TextColumn(
                 COLUMN_LABELS["numero_client_fournisseur"]
+            ),
+            "numero_tahiti_siret": st.column_config.TextColumn(
+                COLUMN_LABELS["numero_tahiti_siret"]
             ),
             "date_facture": st.column_config.DateColumn(
                 COLUMN_LABELS["date_facture"], format="DD/MM/YYYY", required=True
@@ -134,7 +142,9 @@ def render() -> None:
     incomplete = [
         row
         for row in rows
-        if not business_rules.is_row_complete(row.designation, row.departement, row.amortissement_note)
+        if not business_rules.is_row_complete(
+            row.designation, row.departement, row.amortissement_note, row.nom_fournisseur
+        )
     ]
     if incomplete:
         missing_labels = [
@@ -144,8 +154,8 @@ def render() -> None:
             for row in incomplete
         ]
         st.error(
-            f"⚠️ {len(incomplete)} facture(s) incomplète(s) : le service du restaurant (et "
-            "l'amortissement si nécessaire) doivent être renseignés — " + ", ".join(missing_labels)
+            f"⚠️ {len(incomplete)} facture(s) incomplète(s) : le nom du fournisseur et le service du "
+            "restaurant (et l'amortissement si nécessaire) doivent être renseignés — " + ", ".join(missing_labels)
         )
 
     total_ht = sum(row.montant_ht for row in rows)
