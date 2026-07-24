@@ -3,6 +3,23 @@ from config import DESIGNATIONS
 
 TOOL_NAME = "extract_invoice_data"
 
+# Champs que l'IA peut désigner comme incertains (doute réel sur la lecture). Les clés
+# correspondent aux propriétés du schéma ci-dessous, PAS aux noms internes de l'application
+# (le mapping vers les noms internes se fait dans extraction.py).
+UNCERTAIN_FIELD_KEYS = [
+    "code_facture",
+    "nom_fournisseur",
+    "numero_facture",
+    "numero_client_fournisseur",
+    "numero_tahiti_siret",
+    "date_facture",
+    "date_echeance",
+    "designation",
+    "montant_net_ht",
+    "taux_tva_pourcent",
+    "montant_tva",
+]
+
 # Toutes les propriétés sont "required" avec une valeur "vide" par défaut (chaîne vide / 0) plutôt
 # que des types nullable : plus robuste et mieux supporté par les schémas de tool use.
 INVOICE_TOOL_SCHEMA = {
@@ -76,6 +93,16 @@ INVOICE_TOOL_SCHEMA = {
             "type": "integer",
             "description": "Montant de la TVA en francs Pacifique (XPF), nombre entier. Mettre 0 si aucune TVA n'est indiquée sur la facture.",
         },
+        "champs_incertains": {
+            "type": "array",
+            "items": {"type": "string", "enum": UNCERTAIN_FIELD_KEYS},
+            "description": (
+                "Liste des champs ci-dessus pour lesquels tu as un doute RÉEL sur l'exactitude de "
+                "la lecture (écriture peu lisible, chiffre ambigu, zone floue ou mal cadrée...). "
+                "N'indique un champ que si le doute est sérieux, pas par excès de prudence "
+                "systématique. Liste vide [] si tu es raisonnablement sûr de tous les champs."
+            ),
+        },
     },
     "required": [
         "est_facture_lisible",
@@ -90,6 +117,7 @@ INVOICE_TOOL_SCHEMA = {
         "montant_net_ht",
         "taux_tva_pourcent",
         "montant_tva",
+        "champs_incertains",
     ],
 }
 
@@ -98,4 +126,13 @@ SYSTEM_PROMPT = (
     "Polynésie française (devise : francs Pacifique, XPF, sans décimales). Tu extrais "
     "uniquement les informations réellement visibles sur le document fourni, en appelant "
     "l'outil demandé. Tu n'inventes jamais une valeur absente : dans ce cas tu utilises la "
-    "valeur vide par défaut
+    "valeur vide par défaut prévue par le schéma (chaîne vide ou 0). Les dates sur les "
+    "factures sont généralement au format français JJ/MM/AAAA ; tu dois les convertir au "
+    "format AAAA-MM-JJ demandé."
+)
+
+USER_PROMPT = (
+    "Voici une facture fournisseur (photo ou scan). Analyse-la et appelle l'outil "
+    f"\"{TOOL_NAME}\" avec les informations extraites, en respectant strictement les règles "
+    "du schéma fourni."
+)
