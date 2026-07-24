@@ -41,8 +41,10 @@ def _row_from_raw(filename: str, raw: dict, preview_bytes: bytes, preview_media_
     return InvoiceRow(
         source_filename=filename,
         code_facture=(raw.get("code_facture") or "").strip() or None,
+        nom_fournisseur=(raw.get("nom_fournisseur") or "").strip() or None,
         numero_facture=(raw.get("numero_facture") or "").strip() or None,
         numero_client_fournisseur=(raw.get("numero_client_fournisseur") or "").strip() or None,
+        numero_tahiti_siret=(raw.get("numero_tahiti_siret") or "").strip() or None,
         date_facture=date_facture,
         date_echeance=date_echeance,
         designation=designation,
