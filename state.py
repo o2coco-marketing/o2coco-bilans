@@ -28,6 +28,7 @@ class InvoiceRow:
 
     amortissement_note: str | None = None
     departement: str | None = None
+    uncertain_fields: list[str] = field(default_factory=list)
 
     extraction_status: str = "ok"  # "ok" | "error"
     extraction_error_message: str | None = None
@@ -90,6 +91,7 @@ def build_extra_map(rows: list[InvoiceRow]) -> dict[str, dict]:
         row.id: {
             "source_filename": row.source_filename,
             "amortissement_note": row.amortissement_note,
+            "uncertain_fields": row.uncertain_fields,
             "extraction_status": row.extraction_status,
             "extraction_error_message": row.extraction_error_message,
             "extraction_technical_detail": row.extraction_technical_detail,
@@ -143,6 +145,7 @@ def dataframe_to_rows(df: pd.DataFrame, extra: dict[str, dict]) -> list[InvoiceR
                 montant_tva=_safe_int(record.get("montant_tva")),
                 departement=record.get("departement") or None,
                 amortissement_note=extra_fields.get("amortissement_note"),
+                uncertain_fields=extra_fields.get("uncertain_fields") or [],
                 extraction_status=extra_fields.get("extraction_status", "ok"),
                 extraction_error_message=extra_fields.get("extraction_error_message"),
                 extraction_technical_detail=extra_fields.get("extraction_technical_detail"),
