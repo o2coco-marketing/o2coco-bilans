@@ -12,6 +12,16 @@ INVOICE_TOOL_SCHEMA = {
             "type": "boolean",
             "description": "false si l'image/le document n'est pas une facture, ou est trop flou/illisible pour être analysé.",
         },
+        "code_facture": {
+            "type": "string",
+            "description": (
+                "Numéro de repérage interne écrit À LA MAIN et entouré/encerclé par le personnel du "
+                "restaurant, dans un des quatre coins de la facture (haut-gauche, haut-droite, "
+                "bas-gauche ou bas-droite) — un simple chiffre repère, PAS le numéro de facture "
+                "officiel imprimé par le fournisseur. Ne pas confondre les deux. Chaîne vide \"\" si "
+                "aucun chiffre entouré à la main n'est visible sur le document."
+            ),
+        },
         "numero_facture": {
             "type": "string",
             "description": "Numéro de la facture tel qu'imprimé sur le document. Chaîne vide \"\" si absent du document — ne jamais inventer.",
@@ -57,6 +67,7 @@ INVOICE_TOOL_SCHEMA = {
     },
     "required": [
         "est_facture_lisible",
+        "code_facture",
         "numero_facture",
         "numero_client_fournisseur",
         "date_facture",
