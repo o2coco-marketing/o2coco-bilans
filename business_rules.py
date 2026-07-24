@@ -19,8 +19,15 @@ def requires_amortissement(designation: str) -> bool:
     return designation not in {"alimentaire", "service"}
 
 
-def is_row_complete(designation: str, departement: str | None, amortissement_note: str | None) -> bool:
+def is_row_complete(
+    designation: str,
+    departement: str | None,
+    amortissement_note: str | None,
+    nom_fournisseur: str | None = None,
+) -> bool:
     if not departement:
+        return False
+    if not (nom_fournisseur and nom_fournisseur.strip()):
         return False
     if requires_amortissement(designation) and not (amortissement_note and amortissement_note.strip()):
         return False
