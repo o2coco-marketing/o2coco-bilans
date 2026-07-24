@@ -34,6 +34,37 @@ def is_row_complete(
     return True
 
 
+RED_FLAG_LABELS = {
+    "nom_fournisseur": "Nom fournisseur manquant",
+    "departement": "Service du restaurant manquant",
+    "amortissement_note": "Amortissement manquant",
+    "montant_ht": "Montant HT non détecté",
+    "designation": "Désignation à vérifier",
+}
+
+
+def compute_red_flags(
+    designation: str,
+    departement: str | None,
+    amortissement_note: str | None,
+    nom_fournisseur: str | None,
+    montant_ht: int,
+) -> list[str]:
+    """Liste des champs obligatoires manquants ou visiblement non détectés pour cette facture."""
+    flags = []
+    if not (nom_fournisseur and nom_fournisseur.strip()):
+        flags.append("nom_fournisseur")
+    if not departement:
+        flags.append("departement")
+    if requires_amortissement(designation) and not (amortissement_note and amortissement_note.strip()):
+        flags.append("amortissement_note")
+    if montant_ht == 0:
+        flags.append("montant_ht")
+    if designation == "à vérifier manuellement":
+        flags.append("designation")
+    return flags
+
+
 MONTH_NAMES_FR = [
     "janvier", "février", "mars", "avril", "mai", "juin",
     "juillet", "août", "septembre", "octobre", "novembre", "décembre",
