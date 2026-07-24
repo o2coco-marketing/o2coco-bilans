@@ -2,32 +2,15 @@
 import streamlit as st
 
 import business_rules
-from config import DEPARTEMENTS, DESIGNATIONS, MISSING_SELECT_MARKER, MISSING_TEXT_MARKER, UNCERTAIN_SUFFIX
+from config import DEPARTEMENTS, DESIGNATIONS, MISSING_SELECT_MARKER, MISSING_TEXT_MARKER
 from excel_export import build_filename, build_workbook
 from state import COLUMN_LABELS, CORE_COLUMNS, dataframe_to_rows
 
-# Colonnes texte libre où un marqueur peut être écrit directement dans la case (impossible pour
-# les colonnes date/nombre/liste déroulante sans casser leur type).
-TEXT_MARKER_FIELDS = {
-    "nom_fournisseur",
-    "numero_facture",
-    "numero_client_fournisseur",
-    "numero_tahiti_siret",
-    "amortissement_note",
-}
 
-# Champs date/nombre/liste où un doute de l'IA ne peut pas être affiché dans la case elle-même
-# (limite de Streamlit) — on les signale à la place dans une liste sous le tableau.
-NON_TEXT_UNCERTAIN_FIELDS = {"date_facture", "date_echeance", "designation", "montant_ht", "taux_tva", "montant_tva"}
-
-
-def _build_display_df(df, extra):
-    """Copie du tableau avec marqueurs 🔴/✏️ écrits directement dans les cases concernées."""
+def _build_display_df(df):
+    """Copie du tableau avec marqueur 🔴 écrit directement dans les cases obligatoires vides."""
     display = df.copy()
     for idx in display.index:
-        row_id = display.at[idx, "id"]
-        row_extra = extra.get(row_id, {})
-
         if not display.at[idx, "nom_fournisseur"]:
             display.at[idx, "nom_fournisseur"] = MISSING_TEXT_MARKER
         if not display.at[idx, "departement"]:
@@ -35,16 +18,6 @@ def _build_display_df(df, extra):
         designation = display.at[idx, "designation"]
         if business_rules.requires_amortissement(designation) and not display.at[idx, "amortissement_note"]:
             display.at[idx, "amortissement_note"] = MISSING_TEXT_MARKER
-
-        uncertain = set(row_extra.get("uncertain_fields", [])) & TEXT_MARKER_FIELDS
-        for field in uncertain:
-            value = display.at[idx, field]
-            if (
-                value
-                and value not in (MISSING_TEXT_MARKER, MISSING_SELECT_MARKER)
-                and not str(value).endswith(UNCERTAIN_SUFFIX)
-            ):
-                display.at[idx, field] = f"{value}{UNCERTAIN_SUFFIX}"
     return display
 
 
@@ -91,12 +64,9 @@ def render() -> None:
                 for detail in distinct_details:
                     st.code(detail, language=None)
 
-    st.caption(
-        "🔴 dans une case = information obligatoire à compléter. ✏️ après un texte = l'IA a un "
-        "doute sur cette lecture, à vérifier."
-    )
+    st.caption("🔴 dans une case = information obligatoire à compléter.")
     st.subheader("Tableau récapitulatif")
-    display_df = _build_display_df(df, extra)
+    display_df = _build_display_df(df)
     edited_df = st.data_editor(
         display_df,
         column_order=[c for c in CORE_COLUMNS if c != "id"],
@@ -146,23 +116,51 @@ def render() -> None:
     )
     st.session_state["invoices_df"] = edited_df
 
-    uncertain_lines = []
+    flagged_entries = []
     for idx in edited_df.index:
         row_id = edited_df.at[idx, "id"]
-        row_extra = extra.get(row_id, {})
-        flagged = [f for f in row_extra.get("uncertain_fields", []) if f in NON_TEXT_UNCERTAIN_FIELDS]
-        if not flagged:
-            continue
-        filename = row_extra.get("source_filename", "")
-        supplier = edited_df.at[idx, "nom_fournisseur"] or filename or "Facture"
-        field_labels = ", ".join(COLUMN_LABELS[f] for f in flagged)
-        uncertain_lines.append(f"- **{supplier}** ({filename}) — {field_labels}")
+        row_extra = extra.setdefault(row_id, {})
+        original_values = row_extra.get("original_values", {})
+        verified = set(row_extra.get("verified_fields", []))
 
-    if uncertain_lines:
+        for field in row_extra.get("uncertain_fields", []):
+            if field in verified:
+                continue
+            current = edited_df.at[idx, field] if field in edited_df.columns else None
+            if current in (MISSING_TEXT_MARKER, MISSING_SELECT_MARKER):
+                continue  # case encore vide : ce n'est pas une correction, ne compte pas comme vérifié
+            if current != original_values.get(field):
+                verified.add(field)
+        row_extra["verified_fields"] = list(verified)
+
+        filename = row_extra.get("source_filename", "")
+        supplier = edited_df.at[idx, "nom_fournisseur"]
+        if not supplier or supplier == MISSING_TEXT_MARKER:
+            supplier = filename or "Facture"
+        for field in row_extra.get("uncertain_fields", []):
+            if field not in verified:
+                flagged_entries.append((row_id, field, supplier, filename))
+
+    st.session_state["invoice_extra"] = extra
+
+    if flagged_entries:
         st.warning(
-            "⚠️ **Montants/dates à vérifier** — l'IA n'était pas sûre d'avoir bien lu ces valeurs "
-            "(écriture ambiguë) :\n\n" + "\n".join(uncertain_lines)
+            "⚠️ **À vérifier** — l'IA n'était pas sûre d'avoir bien lu ces valeurs. Corrige la case "
+            "concernée dans le tableau ci-dessus (elle sort automatiquement de cette liste), ou "
+            "clique « Vérifié » si la valeur affichée était déjà correcte :"
         )
+        for row_id, field, supplier, filename in flagged_entries:
+            col_a, col_b = st.columns([5, 1])
+            with col_a:
+                st.markdown(f"**{supplier}** ({filename}) — {COLUMN_LABELS[field]}")
+            with col_b:
+                if st.button("✅ Vérifié", key=f"verify_{row_id}_{field}"):
+                    row_extra = extra.setdefault(row_id, {})
+                    verified = set(row_extra.get("verified_fields", []))
+                    verified.add(field)
+                    row_extra["verified_fields"] = list(verified)
+                    st.session_state["invoice_extra"] = extra
+                    st.rerun()
 
     st.subheader("Aperçus — factures « technologie »")
     needing_amortissement = edited_df[
