@@ -30,25 +30,34 @@ def render() -> None:
         (
             extra.get(row_id, {}).get("source_filename", row_id),
             extra.get(row_id, {}).get("extraction_error_message"),
+            extra.get(row_id, {}).get("extraction_technical_detail"),
         )
         for row_id in df["id"]
         if extra.get(row_id, {}).get("extraction_status") == "error"
     ]
     if error_entries:
-        filenames = [name for name, _ in error_entries]
+        filenames = [name for name, _, _ in error_entries]
         st.warning(
             "⚠️ Ces fichiers n'ont pas pu être analysés automatiquement et doivent être "
             "complétés manuellement dans le tableau ci-dessous : " + ", ".join(filenames)
         )
-        distinct_messages = sorted({msg for _, msg in error_entries if msg})
+        distinct_messages = sorted({msg for _, msg, _ in error_entries if msg})
         for msg in distinct_messages:
             st.error(f"Raison indiquée par le système : {msg}")
+        distinct_details = sorted({detail for _, _, detail in error_entries if detail})
+        if distinct_details:
+            with st.expander("🔧 Détail technique (à copier-coller si vous demandez de l'aide)"):
+                for detail in distinct_details:
+                    st.code(detail, language=None)
 
     st.subheader("Tableau récapitulatif")
     edited_df = st.data_editor(
         df,
         column_order=[c for c in CORE_COLUMNS if c != "id"],
         column_config={
+            "code_facture": st.column_config.TextColumn(
+                COLUMN_LABELS["code_facture"], help="Numéro entouré à la main par le personnel, pour retrouver la facture facilement."
+            ),
             "numero_facture": st.column_config.TextColumn(COLUMN_LABELS["numero_facture"]),
             "numero_client_fournisseur": st.column_config.TextColumn(
                 COLUMN_LABELS["numero_client_fournisseur"]
@@ -98,7 +107,9 @@ def render() -> None:
             row_extra = extra.setdefault(row_id, {})
             filename = row_extra.get("source_filename", "")
             invoice_number = table_row["numero_facture"] or "sans numéro"
-            label = f"Amortissement — {filename} (facture {invoice_number}, {table_row['designation']})"
+            code = table_row["code_facture"]
+            code_prefix = f"Code {code} — " if code else ""
+            label = f"Amortissement — {code_prefix}{filename} (facture {invoice_number}, {table_row['designation']})"
 
             edit_col, preview_col = st.columns([4, 1])
             with edit_col:
@@ -126,7 +137,12 @@ def render() -> None:
         if not business_rules.is_row_complete(row.designation, row.departement, row.amortissement_note)
     ]
     if incomplete:
-        missing_labels = [row.source_filename or (row.numero_facture or "facture sans nom") for row in incomplete]
+        missing_labels = [
+            (f"Code {row.code_facture}" if row.code_facture else None)
+            or row.source_filename
+            or (row.numero_facture or "facture sans nom")
+            for row in incomplete
+        ]
         st.error(
             f"⚠️ {len(incomplete)} facture(s) incomplète(s) : le service du restaurant (et "
             "l'amortissement si nécessaire) doivent être renseignés — " + ", ".join(missing_labels)
