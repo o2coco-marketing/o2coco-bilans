@@ -17,7 +17,7 @@ DEFAULT_MAX_CONCURRENT_REQUESTS = 5
 DESIGNATIONS = ["alimentaire", "technologie", "service", "à vérifier manuellement"]
 DEPARTEMENTS = ["Bar-Restaurant", "Bar à vin", "Boulangerie"]
 
-APP_TITLE = "O2 Coco — Bilans mensuels"
+APP_TITLE = "Automatisation factures O2 COCO"
 
 
 def _get_secret(name: str) -> str | None:
