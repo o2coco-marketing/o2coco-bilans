@@ -14,6 +14,7 @@ class InvoiceRow:
     source_filename: str
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
+    code_facture: str | None = None
     numero_facture: str | None = None
     numero_client_fournisseur: str | None = None
     date_facture: date | None = None
@@ -28,12 +29,14 @@ class InvoiceRow:
 
     extraction_status: str = "ok"  # "ok" | "error"
     extraction_error_message: str | None = None
+    extraction_technical_detail: str | None = None
     preview_bytes: bytes | None = None
     preview_media_type: str | None = None
 
 
 CORE_COLUMNS = [
     "id",
+    "code_facture",
     "numero_facture",
     "numero_client_fournisseur",
     "date_facture",
@@ -46,6 +49,7 @@ CORE_COLUMNS = [
 ]
 
 COLUMN_LABELS = {
+    "code_facture": "Code facture",
     "numero_facture": "N° facture",
     "numero_client_fournisseur": "N° client fournisseur / N° Tahiti",
     "date_facture": "Date facture",
@@ -82,6 +86,7 @@ def build_extra_map(rows: list[InvoiceRow]) -> dict[str, dict]:
             "amortissement_note": row.amortissement_note,
             "extraction_status": row.extraction_status,
             "extraction_error_message": row.extraction_error_message,
+            "extraction_technical_detail": row.extraction_technical_detail,
             "preview_bytes": row.preview_bytes,
             "preview_media_type": row.preview_media_type,
         }
@@ -119,6 +124,7 @@ def dataframe_to_rows(df: pd.DataFrame, extra: dict[str, dict]) -> list[InvoiceR
             InvoiceRow(
                 id=record["id"],
                 source_filename=extra_fields.get("source_filename", ""),
+                code_facture=record.get("code_facture") or None,
                 numero_facture=record.get("numero_facture") or None,
                 numero_client_fournisseur=record.get("numero_client_fournisseur") or None,
                 date_facture=invoice_date,
@@ -131,6 +137,7 @@ def dataframe_to_rows(df: pd.DataFrame, extra: dict[str, dict]) -> list[InvoiceR
                 amortissement_note=extra_fields.get("amortissement_note"),
                 extraction_status=extra_fields.get("extraction_status", "ok"),
                 extraction_error_message=extra_fields.get("extraction_error_message"),
+                extraction_technical_detail=extra_fields.get("extraction_technical_detail"),
                 preview_bytes=extra_fields.get("preview_bytes"),
                 preview_media_type=extra_fields.get("preview_media_type"),
             )
