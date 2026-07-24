@@ -27,6 +27,15 @@ RAW_TO_INTERNAL_FIELD = {
 }
 
 
+def _clean_code_facture(raw_value: str | None) -> str | None:
+    """N'accepte que des nombres entiers entre 1 et 500 ; tout le reste devient vide."""
+    value = (raw_value or "").strip().strip('"').strip()
+    if not value.isdigit():
+        return None
+    number = int(value)
+    return str(number) if 1 <= number <= 500 else None
+
+
 def _parse_date(value: str | None) -> date | None:
     value = (value or "").strip()
     if not value:
@@ -60,7 +69,7 @@ def _row_from_raw(filename: str, raw: dict, preview_bytes: bytes, preview_media_
 
     return InvoiceRow(
         source_filename=filename,
-        code_facture=(raw.get("code_facture") or "").strip() or None,
+        code_facture=_clean_code_facture(raw.get("code_facture")),
         nom_fournisseur=(raw.get("nom_fournisseur") or "").strip() or None,
         numero_facture=(raw.get("numero_facture") or "").strip() or None,
         numero_client_fournisseur=(raw.get("numero_client_fournisseur") or "").strip() or None,
