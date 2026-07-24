@@ -20,7 +20,6 @@ DESIGNATIONS = ["alimentaire", "technologie", "service", "à vérifier manuellem
 # une case précise dans un tableau modifiable — ces textes/emoji servent de repère visuel à la place).
 MISSING_TEXT_MARKER = "🔴 À remplir"
 MISSING_SELECT_MARKER = "🔴 À choisir"
-UNCERTAIN_SUFFIX = " ✏️"
 
 DEPARTEMENTS = [MISSING_SELECT_MARKER, "Bar-Restaurant", "Bar à vin", "Boulangerie"]
 
