@@ -2,9 +2,47 @@
 import streamlit as st
 
 import business_rules
-from config import DEPARTEMENTS, DESIGNATIONS
+from config import DEPARTEMENTS, DESIGNATIONS, MISSING_SELECT_MARKER, MISSING_TEXT_MARKER, UNCERTAIN_SUFFIX
 from excel_export import build_filename, build_workbook
 from state import COLUMN_LABELS, CORE_COLUMNS, dataframe_to_rows
+
+# Colonnes texte libre où un marqueur peut être écrit directement dans la case (impossible pour
+# les colonnes date/nombre/liste déroulante sans casser leur type).
+TEXT_MARKER_FIELDS = {
+    "code_facture",
+    "nom_fournisseur",
+    "numero_facture",
+    "numero_client_fournisseur",
+    "numero_tahiti_siret",
+    "amortissement_note",
+}
+
+
+def _build_display_df(df, extra):
+    """Copie du tableau avec marqueurs 🔴/✏️ écrits directement dans les cases concernées."""
+    display = df.copy()
+    for idx in display.index:
+        row_id = display.at[idx, "id"]
+        row_extra = extra.get(row_id, {})
+
+        if not display.at[idx, "nom_fournisseur"]:
+            display.at[idx, "nom_fournisseur"] = MISSING_TEXT_MARKER
+        if not display.at[idx, "departement"]:
+            display.at[idx, "departement"] = MISSING_SELECT_MARKER
+        designation = display.at[idx, "designation"]
+        if business_rules.requires_amortissement(designation) and not display.at[idx, "amortissement_note"]:
+            display.at[idx, "amortissement_note"] = MISSING_TEXT_MARKER
+
+        uncertain = set(row_extra.get("uncertain_fields", [])) & TEXT_MARKER_FIELDS
+        for field in uncertain:
+            value = display.at[idx, field]
+            if (
+                value
+                and value not in (MISSING_TEXT_MARKER, MISSING_SELECT_MARKER)
+                and not str(value).endswith(UNCERTAIN_SUFFIX)
+            ):
+                display.at[idx, field] = f"{value}{UNCERTAIN_SUFFIX}"
+    return display
 
 
 def render() -> None:
@@ -50,9 +88,14 @@ def render() -> None:
                 for detail in distinct_details:
                     st.code(detail, language=None)
 
+    st.caption(
+        "🔴 dans une case = information obligatoire à compléter. ✏️ après un texte = l'IA a un "
+        "doute sur cette lecture, à vérifier."
+    )
     st.subheader("Tableau récapitulatif")
+    display_df = _build_display_df(df, extra)
     edited_df = st.data_editor(
-        df,
+        display_df,
         column_order=[c for c in CORE_COLUMNS if c != "id"],
         column_config={
             "code_facture": st.column_config.TextColumn(
@@ -132,36 +175,6 @@ def render() -> None:
     st.session_state["invoice_extra"] = extra
 
     rows = dataframe_to_rows(edited_df, extra)
-
-    st.subheader("🔎 Points à vérifier")
-    badge_lines = []
-    for row in rows:
-        red_keys = business_rules.compute_red_flags(
-            row.designation, row.departement, row.amortissement_note, row.nom_fournisseur, row.montant_ht
-        )
-        green_keys = [k for k in row.uncertain_fields if k in COLUMN_LABELS]
-        if not red_keys and not green_keys:
-            continue
-        identifier = (
-            f"Code {row.code_facture}" if row.code_facture
-            else (row.source_filename or row.numero_facture or "Facture")
-        )
-        badges = "".join(
-            f'<span style="background:#dc2626;color:white;padding:2px 9px;border-radius:10px;'
-            f'font-size:0.82em;margin-right:6px;white-space:nowrap;">🔴 {business_rules.RED_FLAG_LABELS[k]}</span>'
-            for k in red_keys
-        ) + "".join(
-            f'<span style="background:#bbf7d0;color:#14532d;padding:2px 9px;border-radius:10px;'
-            f'font-size:0.82em;margin-right:6px;white-space:nowrap;">🟢 {COLUMN_LABELS[k]} à vérifier</span>'
-            for k in green_keys
-        )
-        badge_lines.append(
-            f'<div style="margin-bottom:8px;"><strong>{identifier}</strong> — {badges}</div>'
-        )
-    if badge_lines:
-        st.markdown("".join(badge_lines), unsafe_allow_html=True)
-    else:
-        st.caption("Aucun point particulier à vérifier pour l'instant.")
 
     st.divider()
     incomplete = [
