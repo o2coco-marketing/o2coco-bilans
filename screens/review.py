@@ -16,6 +16,10 @@ TEXT_MARKER_FIELDS = {
     "amortissement_note",
 }
 
+# Champs date/nombre/liste où un doute de l'IA ne peut pas être affiché dans la case elle-même
+# (limite de Streamlit) — on les signale à la place dans une liste sous le tableau.
+NON_TEXT_UNCERTAIN_FIELDS = {"date_facture", "date_echeance", "designation", "montant_ht", "taux_tva", "montant_tva"}
+
 
 def _build_display_df(df, extra):
     """Copie du tableau avec marqueurs 🔴/✏️ écrits directement dans les cases concernées."""
@@ -141,6 +145,24 @@ def render() -> None:
         key="invoices_editor",
     )
     st.session_state["invoices_df"] = edited_df
+
+    uncertain_lines = []
+    for idx in edited_df.index:
+        row_id = edited_df.at[idx, "id"]
+        row_extra = extra.get(row_id, {})
+        flagged = [f for f in row_extra.get("uncertain_fields", []) if f in NON_TEXT_UNCERTAIN_FIELDS]
+        if not flagged:
+            continue
+        filename = row_extra.get("source_filename", "")
+        supplier = edited_df.at[idx, "nom_fournisseur"] or filename or "Facture"
+        field_labels = ", ".join(COLUMN_LABELS[f] for f in flagged)
+        uncertain_lines.append(f"- **{supplier}** ({filename}) — {field_labels}")
+
+    if uncertain_lines:
+        st.warning(
+            "⚠️ **Montants/dates à vérifier** — l'IA n'était pas sûre d'avoir bien lu ces valeurs "
+            "(écriture ambiguë) :\n\n" + "\n".join(uncertain_lines)
+        )
 
     st.subheader("Aperçus — factures « technologie »")
     needing_amortissement = edited_df[
