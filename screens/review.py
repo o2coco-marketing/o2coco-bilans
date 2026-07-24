@@ -91,6 +91,10 @@ def render() -> None:
             "departement": st.column_config.SelectboxColumn(
                 COLUMN_LABELS["departement"], options=DEPARTEMENTS, required=True
             ),
+            "amortissement_note": st.column_config.TextColumn(
+                COLUMN_LABELS["amortissement_note"],
+                help="Obligatoire uniquement pour les factures « technologie ». Laisser vide sinon.",
+            ),
         },
         num_rows="fixed",
         hide_index=True,
@@ -99,41 +103,31 @@ def render() -> None:
     )
     st.session_state["invoices_df"] = edited_df
 
-    st.subheader("Compléments requis")
+    st.subheader("Aperçus — factures « technologie »")
     needing_amortissement = edited_df[
         edited_df["designation"].apply(business_rules.requires_amortissement)
     ]
     if needing_amortissement.empty:
-        st.caption("Aucune facture ne nécessite de note d'amortissement pour l'instant.")
+        st.caption("Aucune facture « technologie » pour l'instant.")
     else:
         st.caption(
-            "Ces factures ont une désignation qui n'est ni « alimentaire » ni « service » : "
-            "merci d'indiquer manuellement l'amortissement à appliquer."
+            "Ces factures sont classées « technologie » : complétez la colonne « Amortissement » "
+            "directement dans le tableau ci-dessus. Un aperçu rapide de chaque facture est "
+            "disponible ci-dessous si besoin de vérifier."
         )
         for _, table_row in needing_amortissement.iterrows():
             row_id = table_row["id"]
-            row_extra = extra.setdefault(row_id, {})
+            row_extra = extra.get(row_id, {})
             filename = row_extra.get("source_filename", "")
-            invoice_number = table_row["numero_facture"] or "sans numéro"
             code = table_row["code_facture"]
-            code_prefix = f"Code {code} — " if code else ""
-            label = f"Amortissement — {code_prefix}{filename} (facture {invoice_number}, {table_row['designation']})"
-
-            edit_col, preview_col = st.columns([4, 1])
-            with edit_col:
-                new_note = st.text_input(
-                    label, value=row_extra.get("amortissement_note") or "", key=f"amort_{row_id}"
-                )
-                row_extra["amortissement_note"] = new_note
-            with preview_col:
-                st.write("")
-                with st.popover("🔍 Voir la facture"):
-                    preview_bytes = row_extra.get("preview_bytes")
-                    preview_media_type = row_extra.get("preview_media_type")
-                    if preview_media_type == "image/jpeg" and preview_bytes:
-                        st.image(preview_bytes)
-                    else:
-                        st.caption("Aperçu non disponible pour ce fichier (PDF).")
+            label = f"Code {code} — {filename}" if code else (filename or "Facture")
+            with st.popover(f"🔍 {label}"):
+                preview_bytes = row_extra.get("preview_bytes")
+                preview_media_type = row_extra.get("preview_media_type")
+                if preview_media_type == "image/jpeg" and preview_bytes:
+                    st.image(preview_bytes)
+                else:
+                    st.caption("Aperçu non disponible pour ce fichier (PDF).")
 
     st.session_state["invoice_extra"] = extra
 
