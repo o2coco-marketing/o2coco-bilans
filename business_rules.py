@@ -16,7 +16,7 @@ def default_vat_rate(vat_rate: int | None) -> int:
 
 
 def requires_amortissement(designation: str) -> bool:
-    return designation not in {"alimentaire", "service"}
+    return designation == "technologie"
 
 
 def is_row_complete(
