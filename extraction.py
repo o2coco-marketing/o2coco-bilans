@@ -8,7 +8,7 @@ from typing import Callable
 import business_rules
 from claude_client import extract_invoice_prepared, get_client, prepare_document
 from config import DESIGNATIONS
-from errors import friendly_error_message
+from errors import friendly_error_message, technical_detail
 from state import InvoiceRow
 
 
@@ -40,6 +40,7 @@ def _row_from_raw(filename: str, raw: dict, preview_bytes: bytes, preview_media_
 
     return InvoiceRow(
         source_filename=filename,
+        code_facture=(raw.get("code_facture") or "").strip() or None,
         numero_facture=(raw.get("numero_facture") or "").strip() or None,
         numero_client_fournisseur=(raw.get("numero_client_fournisseur") or "").strip() or None,
         date_facture=date_facture,
@@ -59,13 +60,14 @@ def _process_single(client, model: str, filename: str, file_bytes: bytes) -> Inv
     """Ne lève jamais d'exception : toute erreur est capturée et renvoyée comme ligne en erreur."""
     try:
         data, media_type, block_type = prepare_document(file_bytes, filename)
-    except Exception:
+    except Exception as exc:
         return InvoiceRow(
             source_filename=filename,
             date_facture=date.today(),
             date_echeance=business_rules.default_due_date(date.today()),
             extraction_status="error",
             extraction_error_message="Ce fichier n'a pas pu être ouvert (format d'image ou de PDF non reconnu).",
+            extraction_technical_detail=technical_detail(exc),
         )
 
     try:
@@ -77,6 +79,7 @@ def _process_single(client, model: str, filename: str, file_bytes: bytes) -> Inv
             date_echeance=business_rules.default_due_date(date.today()),
             extraction_status="error",
             extraction_error_message=friendly_error_message(exc),
+            extraction_technical_detail=technical_detail(exc),
             preview_bytes=data,
             preview_media_type=media_type,
         )
