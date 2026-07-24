@@ -6,8 +6,11 @@ cette liste (ordre, en-têtes, colonnes) sans toucher à excel_export.py.
 """
 
 COLUMNS = [
+    {"header": "Code facture", "field": "code_facture", "width": 12, "format": "text"},
+    {"header": "Nom fournisseur", "field": "nom_fournisseur", "width": 22, "format": "text"},
     {"header": "N° facture", "field": "numero_facture", "width": 16, "format": "text"},
-    {"header": "N° client fournisseur / N° Tahiti", "field": "numero_client_fournisseur", "width": 26, "format": "text"},
+    {"header": "N° client fournisseur", "field": "numero_client_fournisseur", "width": 20, "format": "text"},
+    {"header": "N° Tahiti / SIRET", "field": "numero_tahiti_siret", "width": 18, "format": "text"},
     {"header": "Date facture", "field": "date_facture", "width": 14, "format": "date"},
     {"header": "Date d'échéance", "field": "date_echeance", "width": 14, "format": "date"},
     {"header": "Désignation", "field": "designation", "width": 20, "format": "text"},
