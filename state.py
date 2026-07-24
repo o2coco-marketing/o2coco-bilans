@@ -15,8 +15,10 @@ class InvoiceRow:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
     code_facture: str | None = None
+    nom_fournisseur: str | None = None
     numero_facture: str | None = None
     numero_client_fournisseur: str | None = None
+    numero_tahiti_siret: str | None = None
     date_facture: date | None = None
     date_echeance: date | None = None
     designation: str = "à vérifier manuellement"
@@ -37,8 +39,10 @@ class InvoiceRow:
 CORE_COLUMNS = [
     "id",
     "code_facture",
+    "nom_fournisseur",
     "numero_facture",
     "numero_client_fournisseur",
+    "numero_tahiti_siret",
     "date_facture",
     "date_echeance",
     "designation",
@@ -50,8 +54,10 @@ CORE_COLUMNS = [
 
 COLUMN_LABELS = {
     "code_facture": "Code facture",
+    "nom_fournisseur": "Nom fournisseur",
     "numero_facture": "N° facture",
-    "numero_client_fournisseur": "N° client fournisseur / N° Tahiti",
+    "numero_client_fournisseur": "N° client fournisseur",
+    "numero_tahiti_siret": "N° Tahiti / SIRET",
     "date_facture": "Date facture",
     "date_echeance": "Date d'échéance",
     "designation": "Désignation",
@@ -125,8 +131,10 @@ def dataframe_to_rows(df: pd.DataFrame, extra: dict[str, dict]) -> list[InvoiceR
                 id=record["id"],
                 source_filename=extra_fields.get("source_filename", ""),
                 code_facture=record.get("code_facture") or None,
+                nom_fournisseur=record.get("nom_fournisseur") or None,
                 numero_facture=record.get("numero_facture") or None,
                 numero_client_fournisseur=record.get("numero_client_fournisseur") or None,
+                numero_tahiti_siret=record.get("numero_tahiti_siret") or None,
                 date_facture=invoice_date,
                 date_echeance=_safe_date(record.get("date_echeance"), invoice_date),
                 designation=record.get("designation") or "à vérifier manuellement",
