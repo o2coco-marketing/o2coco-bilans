@@ -16,3 +16,10 @@ def friendly_error_message(exc: Exception) -> str:
     if isinstance(exc, anthropic.APIStatusError):
         return "Le service d'analyse a rencontré un problème temporaire. Réessayez dans quelques instants."
     return "Cette facture n'a pas pu être analysée automatiquement. Vous pouvez remplir ses informations manuellement ci-dessous."
+
+
+def technical_detail(exc: Exception) -> str:
+    """Détail technique brut, à afficher dans une section repliable pour le diagnostic."""
+    detail = str(exc).strip()
+    label = f"{type(exc).__name__}"
+    return f"{label}: {detail}" if detail else label
