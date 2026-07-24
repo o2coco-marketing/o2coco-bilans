@@ -46,6 +46,11 @@ def get_api_key() -> str | None:
     return _get_secret("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY") or None
 
 
+def get_app_password() -> str | None:
+    """Mot de passe d'accès à l'application. Si non configuré, l'accès reste libre."""
+    return _get_secret("APP_PASSWORD") or os.environ.get("APP_PASSWORD") or None
+
+
 def get_model() -> str:
     return _get_secret("CLAUDE_MODEL") or os.environ.get("CLAUDE_MODEL") or DEFAULT_MODEL
 
