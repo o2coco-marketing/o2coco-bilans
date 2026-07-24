@@ -52,6 +52,20 @@ CORE_COLUMNS = [
     "amortissement_note",
 ]
 
+# Champs remplis par l'IA (utilisé pour détecter si l'utilisateur a corrigé une valeur incertaine).
+AI_CONTROLLED_FIELDS = [
+    "nom_fournisseur",
+    "numero_facture",
+    "numero_client_fournisseur",
+    "numero_tahiti_siret",
+    "date_facture",
+    "date_echeance",
+    "designation",
+    "montant_ht",
+    "taux_tva",
+    "montant_tva",
+]
+
 COLUMN_LABELS = {
     "nom_fournisseur": "Nom fournisseur",
     "numero_facture": "N° facture",
@@ -90,6 +104,8 @@ def build_extra_map(rows: list[InvoiceRow]) -> dict[str, dict]:
         row.id: {
             "source_filename": row.source_filename,
             "uncertain_fields": row.uncertain_fields,
+            "original_values": {f: getattr(row, f) for f in AI_CONTROLLED_FIELDS},
+            "verified_fields": [],
             "extraction_status": row.extraction_status,
             "extraction_error_message": row.extraction_error_message,
             "extraction_technical_detail": row.extraction_technical_detail,
