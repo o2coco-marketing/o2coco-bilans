@@ -14,7 +14,6 @@ class InvoiceRow:
     source_filename: str
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
-    code_facture: str | None = None
     nom_fournisseur: str | None = None
     numero_facture: str | None = None
     numero_client_fournisseur: str | None = None
@@ -39,7 +38,6 @@ class InvoiceRow:
 
 CORE_COLUMNS = [
     "id",
-    "code_facture",
     "nom_fournisseur",
     "numero_facture",
     "numero_client_fournisseur",
@@ -55,7 +53,6 @@ CORE_COLUMNS = [
 ]
 
 COLUMN_LABELS = {
-    "code_facture": "Code facture",
     "nom_fournisseur": "Nom fournisseur",
     "numero_facture": "N° facture",
     "numero_client_fournisseur": "N° client fournisseur",
@@ -133,7 +130,6 @@ def dataframe_to_rows(df: pd.DataFrame, extra: dict[str, dict]) -> list[InvoiceR
             InvoiceRow(
                 id=record["id"],
                 source_filename=extra_fields.get("source_filename", ""),
-                code_facture=record.get("code_facture") or None,
                 nom_fournisseur=record.get("nom_fournisseur") or None,
                 numero_facture=record.get("numero_facture") or None,
                 numero_client_fournisseur=record.get("numero_client_fournisseur") or None,
