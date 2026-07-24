@@ -32,11 +32,17 @@ INVOICE_TOOL_SCHEMA = {
         "code_facture": {
             "type": "string",
             "description": (
-                "Numéro de repérage interne écrit À LA MAIN et entouré/encerclé par le personnel du "
-                "restaurant, dans un des quatre coins de la facture (haut-gauche, haut-droite, "
-                "bas-gauche ou bas-droite) — un simple chiffre repère, PAS le numéro de facture "
-                "officiel imprimé par le fournisseur. Ne pas confondre les deux. Chaîne vide \"\" si "
-                "aucun chiffre entouré à la main n'est visible sur le document."
+                "Un nombre entier entre 1 et 500, écrit À LA MAIN (au stylo/crayon, ajouté après coup "
+                "par le personnel du restaurant — pas imprimé) ET entouré d'un cercle ou ovale tracé "
+                "à la main, situé dans l'un des quatre coins de la facture. C'est un simple repère "
+                "interne, totalement indépendant du contenu imprimé de la facture. "
+                "N'INDIQUE CE CHAMP QUE si tu vois clairement les DEUX éléments à la fois : un chiffre "
+                "manuscrit ET un cercle/ovale dessiné autour. "
+                "Ne mets JAMAIS ici : le numéro de facture imprimé, un numéro de TVA/Tahiti/SIRET, une "
+                "date, un montant, ou tout autre chiffre imprimé sur le document — même s'il semble "
+                "plausible. En cas de moindre doute, ou si aucun chiffre entouré à la main n'est "
+                "visible, réponds une chaîne vide \"\" (zéro caractère, jamais les deux caractères "
+                "guillemets \"\" écrits littéralement, une vraie chaîne vide)."
             ),
         },
         "nom_fournisseur": {
