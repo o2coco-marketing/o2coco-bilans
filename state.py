@@ -51,6 +51,7 @@ CORE_COLUMNS = [
     "taux_tva",
     "montant_tva",
     "departement",
+    "amortissement_note",
 ]
 
 COLUMN_LABELS = {
@@ -66,6 +67,7 @@ COLUMN_LABELS = {
     "taux_tva": "Taux TVA (%)",
     "montant_tva": "Montant TVA",
     "departement": "Service du restaurant",
+    "amortissement_note": "Amortissement (technologie)",
 }
 
 
@@ -90,7 +92,6 @@ def build_extra_map(rows: list[InvoiceRow]) -> dict[str, dict]:
     return {
         row.id: {
             "source_filename": row.source_filename,
-            "amortissement_note": row.amortissement_note,
             "uncertain_fields": row.uncertain_fields,
             "extraction_status": row.extraction_status,
             "extraction_error_message": row.extraction_error_message,
@@ -144,7 +145,7 @@ def dataframe_to_rows(df: pd.DataFrame, extra: dict[str, dict]) -> list[InvoiceR
                 taux_tva=_safe_int(record.get("taux_tva")),
                 montant_tva=_safe_int(record.get("montant_tva")),
                 departement=record.get("departement") or None,
-                amortissement_note=extra_fields.get("amortissement_note"),
+                amortissement_note=record.get("amortissement_note") or None,
                 uncertain_fields=extra_fields.get("uncertain_fields") or [],
                 extraction_status=extra_fields.get("extraction_status", "ok"),
                 extraction_error_message=extra_fields.get("extraction_error_message"),
