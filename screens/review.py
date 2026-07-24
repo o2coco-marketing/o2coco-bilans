@@ -137,8 +137,39 @@ def render() -> None:
 
     st.session_state["invoice_extra"] = extra
 
-    st.divider()
     rows = dataframe_to_rows(edited_df, extra)
+
+    st.subheader("🔎 Points à vérifier")
+    badge_lines = []
+    for row in rows:
+        red_keys = business_rules.compute_red_flags(
+            row.designation, row.departement, row.amortissement_note, row.nom_fournisseur, row.montant_ht
+        )
+        green_keys = [k for k in row.uncertain_fields if k in COLUMN_LABELS]
+        if not red_keys and not green_keys:
+            continue
+        identifier = (
+            f"Code {row.code_facture}" if row.code_facture
+            else (row.source_filename or row.numero_facture or "Facture")
+        )
+        badges = "".join(
+            f'<span style="background:#dc2626;color:white;padding:2px 9px;border-radius:10px;'
+            f'font-size:0.82em;margin-right:6px;white-space:nowrap;">🔴 {business_rules.RED_FLAG_LABELS[k]}</span>'
+            for k in red_keys
+        ) + "".join(
+            f'<span style="background:#bbf7d0;color:#14532d;padding:2px 9px;border-radius:10px;'
+            f'font-size:0.82em;margin-right:6px;white-space:nowrap;">🟢 {COLUMN_LABELS[k]} à vérifier</span>'
+            for k in green_keys
+        )
+        badge_lines.append(
+            f'<div style="margin-bottom:8px;"><strong>{identifier}</strong> — {badges}</div>'
+        )
+    if badge_lines:
+        st.markdown("".join(badge_lines), unsafe_allow_html=True)
+    else:
+        st.caption("Aucun point particulier à vérifier pour l'instant.")
+
+    st.divider()
     incomplete = [
         row
         for row in rows
