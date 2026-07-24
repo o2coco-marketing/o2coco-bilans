@@ -5,8 +5,7 @@ import config
 from screens import home, processing, review, setup, upload
 from state import init_session_state
 
-st.set_page_config(page_title=config.APP_TITLE, page_icon="🧾", layout="wide")
-
+st.set_page_config(page_title=config.APP_TITLE, page_icon="🥥", layout="wide")
 
 def main() -> None:
     init_session_state()
