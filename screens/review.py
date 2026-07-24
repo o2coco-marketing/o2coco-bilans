@@ -9,7 +9,6 @@ from state import COLUMN_LABELS, CORE_COLUMNS, dataframe_to_rows
 # Colonnes texte libre où un marqueur peut être écrit directement dans la case (impossible pour
 # les colonnes date/nombre/liste déroulante sans casser leur type).
 TEXT_MARKER_FIELDS = {
-    "code_facture",
     "nom_fournisseur",
     "numero_facture",
     "numero_client_fournisseur",
@@ -98,9 +97,6 @@ def render() -> None:
         display_df,
         column_order=[c for c in CORE_COLUMNS if c != "id"],
         column_config={
-            "code_facture": st.column_config.TextColumn(
-                COLUMN_LABELS["code_facture"], help="Numéro entouré à la main par le personnel, pour retrouver la facture facilement."
-            ),
             "nom_fournisseur": st.column_config.TextColumn(
                 COLUMN_LABELS["nom_fournisseur"],
                 help="Nom de l'entreprise (ex: AUCHAN). Obligatoire — à compléter à la main si l'IA ne l'a pas trouvé.",
@@ -162,8 +158,7 @@ def render() -> None:
             row_id = table_row["id"]
             row_extra = extra.get(row_id, {})
             filename = row_extra.get("source_filename", "")
-            code = table_row["code_facture"]
-            label = f"Code {code} — {filename}" if code else (filename or "Facture")
+            label = filename or "Facture"
             with st.popover(f"🔍 {label}"):
                 preview_bytes = row_extra.get("preview_bytes")
                 preview_media_type = row_extra.get("preview_media_type")
@@ -186,9 +181,7 @@ def render() -> None:
     ]
     if incomplete:
         missing_labels = [
-            (f"Code {row.code_facture}" if row.code_facture else None)
-            or row.source_filename
-            or (row.numero_facture or "facture sans nom")
+            row.source_filename or (row.numero_facture or "facture sans nom")
             for row in incomplete
         ]
         st.error(
