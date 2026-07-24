@@ -11,6 +11,21 @@ from config import DESIGNATIONS
 from errors import friendly_error_message, technical_detail
 from state import InvoiceRow
 
+# Mapping des clés de schéma (côté IA) vers les noms de champs internes de l'application.
+RAW_TO_INTERNAL_FIELD = {
+    "code_facture": "code_facture",
+    "nom_fournisseur": "nom_fournisseur",
+    "numero_facture": "numero_facture",
+    "numero_client_fournisseur": "numero_client_fournisseur",
+    "numero_tahiti_siret": "numero_tahiti_siret",
+    "date_facture": "date_facture",
+    "date_echeance": "date_echeance",
+    "designation": "designation",
+    "montant_net_ht": "montant_ht",
+    "taux_tva_pourcent": "taux_tva",
+    "montant_tva": "montant_tva",
+}
+
 
 def _parse_date(value: str | None) -> date | None:
     value = (value or "").strip()
@@ -38,6 +53,11 @@ def _row_from_raw(filename: str, raw: dict, preview_bytes: bytes, preview_media_
             "Vérifiez-le et complétez les champs manuellement."
         )
 
+    raw_uncertain = raw.get("champs_incertains") or []
+    uncertain_fields = [
+        RAW_TO_INTERNAL_FIELD[key] for key in raw_uncertain if key in RAW_TO_INTERNAL_FIELD
+    ]
+
     return InvoiceRow(
         source_filename=filename,
         code_facture=(raw.get("code_facture") or "").strip() or None,
@@ -51,6 +71,7 @@ def _row_from_raw(filename: str, raw: dict, preview_bytes: bytes, preview_media_
         montant_ht=int(raw.get("montant_net_ht") or 0),
         taux_tva=business_rules.default_vat_rate(raw.get("taux_tva_pourcent")),
         montant_tva=int(raw.get("montant_tva") or 0),
+        uncertain_fields=uncertain_fields,
         extraction_status=status,
         extraction_error_message=error_message,
         preview_bytes=preview_bytes,
