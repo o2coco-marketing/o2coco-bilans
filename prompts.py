@@ -7,7 +7,6 @@ TOOL_NAME = "extract_invoice_data"
 # correspondent aux propriétés du schéma ci-dessous, PAS aux noms internes de l'application
 # (le mapping vers les noms internes se fait dans extraction.py).
 UNCERTAIN_FIELD_KEYS = [
-    "code_facture",
     "nom_fournisseur",
     "numero_facture",
     "numero_client_fournisseur",
@@ -28,22 +27,6 @@ INVOICE_TOOL_SCHEMA = {
         "est_facture_lisible": {
             "type": "boolean",
             "description": "false si l'image/le document n'est pas une facture, ou est trop flou/illisible pour être analysé.",
-        },
-        "code_facture": {
-            "type": "string",
-            "description": (
-                "Un nombre entier entre 1 et 500, écrit À LA MAIN (au stylo/crayon, ajouté après coup "
-                "par le personnel du restaurant — pas imprimé) ET entouré d'un cercle ou ovale tracé "
-                "à la main, situé dans l'un des quatre coins de la facture. C'est un simple repère "
-                "interne, totalement indépendant du contenu imprimé de la facture. "
-                "N'INDIQUE CE CHAMP QUE si tu vois clairement les DEUX éléments à la fois : un chiffre "
-                "manuscrit ET un cercle/ovale dessiné autour. "
-                "Ne mets JAMAIS ici : le numéro de facture imprimé, un numéro de TVA/Tahiti/SIRET, une "
-                "date, un montant, ou tout autre chiffre imprimé sur le document — même s'il semble "
-                "plausible. En cas de moindre doute, ou si aucun chiffre entouré à la main n'est "
-                "visible, réponds une chaîne vide \"\" (zéro caractère, jamais les deux caractères "
-                "guillemets \"\" écrits littéralement, une vraie chaîne vide)."
-            ),
         },
         "nom_fournisseur": {
             "type": "string",
@@ -112,7 +95,6 @@ INVOICE_TOOL_SCHEMA = {
     },
     "required": [
         "est_facture_lisible",
-        "code_facture",
         "nom_fournisseur",
         "numero_facture",
         "numero_client_fournisseur",
