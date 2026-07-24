@@ -15,7 +15,14 @@ DEFAULT_MODEL = "claude-sonnet-5"
 DEFAULT_MAX_CONCURRENT_REQUESTS = 5
 
 DESIGNATIONS = ["alimentaire", "technologie", "service", "à vérifier manuellement"]
-DEPARTEMENTS = ["Bar-Restaurant", "Bar à vin", "Boulangerie"]
+
+# Marqueurs affichés directement dans les cases du tableau (Streamlit ne permet pas de colorer
+# une case précise dans un tableau modifiable — ces textes/emoji servent de repère visuel à la place).
+MISSING_TEXT_MARKER = "🔴 À remplir"
+MISSING_SELECT_MARKER = "🔴 À choisir"
+UNCERTAIN_SUFFIX = " ✏️"
+
+DEPARTEMENTS = [MISSING_SELECT_MARKER, "Bar-Restaurant", "Bar à vin", "Boulangerie"]
 
 APP_TITLE = "Automatisation factures O2 COCO"
 
