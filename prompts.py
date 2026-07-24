@@ -22,13 +22,25 @@ INVOICE_TOOL_SCHEMA = {
                 "aucun chiffre entouré à la main n'est visible sur le document."
             ),
         },
+        "nom_fournisseur": {
+            "type": "string",
+            "description": (
+                "Nom / raison sociale de l'entreprise fournisseur telle qu'imprimée sur la facture "
+                "(ex: 'AUCHAN', 'Carrefour Tahiti', 'STGDN'...). Chaîne vide \"\" uniquement si le nom "
+                "n'est vraiment pas identifiable sur le document — ne jamais inventer un nom."
+            ),
+        },
         "numero_facture": {
             "type": "string",
             "description": "Numéro de la facture tel qu'imprimé sur le document. Chaîne vide \"\" si absent du document — ne jamais inventer.",
         },
         "numero_client_fournisseur": {
             "type": "string",
-            "description": "Numéro de compte client chez ce fournisseur, ou numéro Tahiti (identifiant TIN/RC). Chaîne vide \"\" si absent.",
+            "description": "Numéro de compte CLIENT attribué par ce fournisseur (identifiant client) — PAS le numéro Tahiti/SIRET du fournisseur lui-même. Chaîne vide \"\" si absent.",
+        },
+        "numero_tahiti_siret": {
+            "type": "string",
+            "description": "Numéro d'identification du FOURNISSEUR : numéro Tahiti (TIN) ou numéro SIRET, l'un des deux selon ce qui est indiqué sur la facture. Chaîne vide \"\" si aucun des deux n'est visible.",
         },
         "date_facture": {
             "type": "string",
@@ -68,8 +80,10 @@ INVOICE_TOOL_SCHEMA = {
     "required": [
         "est_facture_lisible",
         "code_facture",
+        "nom_fournisseur",
         "numero_facture",
         "numero_client_fournisseur",
+        "numero_tahiti_siret",
         "date_facture",
         "date_echeance",
         "designation",
@@ -84,13 +98,4 @@ SYSTEM_PROMPT = (
     "Polynésie française (devise : francs Pacifique, XPF, sans décimales). Tu extrais "
     "uniquement les informations réellement visibles sur le document fourni, en appelant "
     "l'outil demandé. Tu n'inventes jamais une valeur absente : dans ce cas tu utilises la "
-    "valeur vide par défaut prévue par le schéma (chaîne vide ou 0). Les dates sur les "
-    "factures sont généralement au format français JJ/MM/AAAA ; tu dois les convertir au "
-    "format AAAA-MM-JJ demandé."
-)
-
-USER_PROMPT = (
-    "Voici une facture fournisseur (photo ou scan). Analyse-la et appelle l'outil "
-    f"\"{TOOL_NAME}\" avec les informations extraites, en respectant strictement les règles "
-    "du schéma fourni."
-)
+    "valeur vide par défaut
